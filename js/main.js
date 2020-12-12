@@ -1,12 +1,12 @@
 /* ===================================================================
- * Count - Main JS
+ * Sublime - Main JS
  *
  * ------------------------------------------------------------------- */
 
 (function($) {
 
     "use strict";
-
+    
     var cfg = {
         scrollDuration : 800, // smoothscroll duration
         mailChimpURL   : 'https://facebook.us8.list-manage.com/subscribe/post?u=cdb7b577e41181934ed6a6a44&amp;id=e6957d85dc'   // mailchimp url
@@ -21,140 +21,238 @@
 
     // svg fallback
     if (!Modernizr.svg) {
-        $(".home-logo img").attr("src", "images/logo.png");
+        $(".header-logo img").attr("src", "images/logo.png");
     }
 
 
    /* Preloader
     * -------------------------------------------------- */
     var ssPreloader = function() {
-
+        
         $("html").addClass('ss-preload');
 
         $WIN.on('load', function() {
 
-            // will first fade out the loading animation
+            //force page scroll position to top at page refresh
+            $('html, body').animate({ scrollTop: 0 }, 'normal');
+
+            // will first fade out the loading animation 
             $("#loader").fadeOut("slow", function() {
                 // will fade out the whole DIV that covers the website.
                 $("#preloader").delay(300).fadeOut("slow");
-            });
-
-            // for hero content animations
+            }); 
+            
+            // for hero content animations 
             $("html").removeClass('ss-preload');
             $("html").addClass('ss-loaded');
+        
+        });
+    };
+
+
+   /* Menu on Scrolldown
+    * ------------------------------------------------------ */
+    var ssMenuOnScrolldown = function() {
+        
+        var menuTrigger = $('.header-menu-toggle');
+
+        $WIN.on('scroll', function() {
+
+            if ($WIN.scrollTop() > 150) {
+                menuTrigger.addClass('opaque');
+            }
+            else {
+                menuTrigger.removeClass('opaque');
+            }
 
         });
     };
 
 
-   /* info toggle
+   /* OffCanvas Menu
     * ------------------------------------------------------ */
-    var ssInfoToggle = function() {
+    var ssOffCanvas = function() {
 
-        //open/close lateral navigation
-        $('.info-toggle').on('click', function(event) {
+        var menuTrigger     = $('.header-menu-toggle'),
+            nav             = $('.header-nav'),
+            closeButton     = nav.find('.header-nav__close'),
+            siteBody        = $('body'),
+            mainContents    = $('section, footer');
 
-            event.preventDefault();
-            $('body').toggleClass('info-is-visible');
-
+        // open-close menu by clicking on the menu icon
+        menuTrigger.on('click', function(e){
+            e.preventDefault();
+            siteBody.toggleClass('menu-is-open');
         });
 
+        // close menu by clicking the close button
+        closeButton.on('click', function(e){
+            e.preventDefault();
+            menuTrigger.trigger('click');
+        });
+
+        // close menu clicking outside the menu itself
+        siteBody.on('click', function(e){
+            if( !$(e.target).is('.header-nav, .header-nav__content, .header-menu-toggle, .header-menu-toggle span') ) {
+                siteBody.removeClass('menu-is-open');
+            }
+        });
+
+    };
+
+
+   /* Masonry
+    * ---------------------------------------------------- */ 
+    var ssMasonryFolio = function () {
+        
+        var containerBricks = $('.masonry');
+
+        containerBricks.imagesLoaded(function () {
+            containerBricks.masonry({
+                itemSelector: '.masonry__brick',
+                resize: true
+            });
+        });
+    };
+
+
+   /* photoswipe
+    * ----------------------------------------------------- */
+    var ssPhotoswipe = function() {
+        var items = [],
+            $pswp = $('.pswp')[0],
+            $folioItems = $('.item-folio');
+
+        // get items
+        $folioItems.each( function(i) {
+
+            var $folio = $(this),
+                $thumbLink =  $folio.find('.thumb-link'),
+                $title = $folio.find('.item-folio__title'),
+                $caption = $folio.find('.item-folio__caption'),
+                $titleText = '<h4>' + $.trim($title.html()) + '</h4>',
+                $captionText = $.trim($caption.html()),
+                $href = $thumbLink.attr('href'),
+                $size = $thumbLink.data('size').split('x'),
+                $width  = $size[0],
+                $height = $size[1];
+        
+            var item = {
+                src  : $href,
+                w    : $width,
+                h    : $height
+            }
+
+            if ($caption.length > 0) {
+                item.title = $.trim($titleText + $captionText);
+            }
+
+            items.push(item);
+        });
+
+        // bind click event
+        $folioItems.each(function(i) {
+
+            $(this).on('click', function(e) {
+                e.preventDefault();
+                var options = {
+                    index: i,
+                    showHideOpacity: true
+                }
+
+                // initialize PhotoSwipe
+                var lightBox = new PhotoSwipe($pswp, PhotoSwipeUI_Default, items, options);
+                lightBox.init();
+            });
+
+        });
     };
 
 
    /* slick slider
     * ------------------------------------------------------ */
     var ssSlickSlider = function() {
-
-        $('.home-slider').slick({
+        
+        $('.testimonials__slider').slick({
             arrows: false,
-            dots: false,
-            autoplay: true,
-            autoplaySpeed: 3000,
-            fade: true,
-            speed: 3000
+            dots: true,
+            infinite: true,
+            slidesToShow: 1,
+            slidesToScroll: 1,
+            pauseOnFocus: false,
+            autoplaySpeed: 1500
+        });
+    };
+
+
+   /* Smooth Scrolling
+    * ------------------------------------------------------ */
+    var ssSmoothScroll = function() {
+        
+        $('.smoothscroll').on('click', function (e) {
+            var target = this.hash,
+            $target    = $(target);
+            
+                e.preventDefault();
+                e.stopPropagation();
+
+            $('html, body').stop().animate({
+                'scrollTop': $target.offset().top
+            }, cfg.scrollDuration, 'swing').promise().done(function () {
+
+                // check if menu is open
+                if ($('body').hasClass('menu-is-open')) {
+                    $('.header-menu-toggle').trigger('click');
+                }
+
+                window.location.hash = target;
+            });
         });
 
     };
 
 
-   /* placeholder plugin settings
+   /* Alert Boxes
     * ------------------------------------------------------ */
-    var ssPlaceholder = function() {
-        $('input, textarea, select').placeholder();
+    var ssAlertBoxes = function() {
+
+        $('.alert-box').on('click', '.alert-box__close', function() {
+            $(this).parent().fadeOut(500);
+        }); 
+
     };
 
 
-   /* final countdown
+   /* Animate On Scroll
     * ------------------------------------------------------ */
-    var ssFinalCountdown = function() {
-
-        var finalDate = '2020/12/13';
-
-        $('.home-content__clock').countdown(finalDate)
-        .on('update.countdown finish.countdown', function(event) {
-
-            var str = '<div class=\"top\"><div class=\"time days\">' +
-                      '%D <span>day%!D</span>' +
-                      '</div></div>' +
-                      '<div class=\"time hours\">' +
-                      '%H <span>H</span></div>' +
-                      '<div class=\"time minutes\">' +
-                      '%M <span>M</span></div>' +
-                      '<div class=\"time seconds\">' +
-                      '%S <span>S</span></div>';
-
-            $(this)
-            .html(event.strftime(str));
-
-        });
-    };
-
-
-   /* AjaxChimp
-    * ------------------------------------------------------ */
-    var ssAjaxChimp = function() {
-
-        $('#mc-form').ajaxChimp({
-            language: 'es',
-            url: cfg.mailChimpURL
+    var ssAOS = function() {
+        
+        AOS.init( {
+            offset: 200,
+            duration: 600,
+            easing: 'ease-in-sine',
+            delay: 300,
+            once: true,
+            disable: 'mobile'
         });
 
-        // Mailchimp translation
-        //
-        //  Defaults:
-        //	 'submit': 'Submitting...',
-        //  0: 'We have sent you a confirmation email',
-        //  1: 'Please enter a value',
-        //  2: 'An email address must contain a single @',
-        //  3: 'The domain portion of the email address is invalid (the portion after the @: )',
-        //  4: 'The username portion of the email address is invalid (the portion before the @: )',
-        //  5: 'This email address looks fake or invalid. Please enter a real email address'
-
-        $.ajaxChimp.translations.es = {
-            'submit': 'Submitting...',
-            0: '<i class="fas fa-check"></i> We have sent you a confirmation email',
-            1: '<i class="fas fa-exclamation-triangle"></i> You must enter a valid e-mail address.',
-            2: '<i class="fas fa-exclamation-triangle"></i> E-mail address is not valid.',
-            3: '<i class="fas fa-exclamation-triangle"></i> E-mail address is not valid.',
-            4: '<i class="fas fa-exclamation-triangle"></i> E-mail address is not valid.',
-            5: '<i class="fas fa-exclamation-triangle"></i> E-mail address is not valid.'
-        }
     };
 
 
-   /* initialize
+   /* Initialize
     * ------------------------------------------------------ */
-    (function ssInit() {
+    (function clInit() {
 
         ssPreloader();
-        ssInfoToggle();
+        ssMenuOnScrolldown();
+        ssOffCanvas();
+        ssMasonryFolio();
+        ssPhotoswipe();
         ssSlickSlider();
-        ssPlaceholder();
-        ssFinalCountdown();
-        ssAjaxChimp();
+        ssSmoothScroll();
+        ssAlertBoxes();
+        ssAOS();
 
     })();
-
 
 })(jQuery);
